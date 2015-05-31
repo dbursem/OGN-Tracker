@@ -41,10 +41,6 @@ uint8_t RecieveActive = false;
 uint32_t ReportTime = 0;
 #define REPORTDELAY 1000
 
-uint32_t ClimbAverageTime = 0;
-#define CLIMBAVERAGE 30000
-
-#define NMEAOUTDELAY 60000
 
 void setup() 
 {
@@ -59,6 +55,7 @@ void setup()
   Radio->Initialise(TrackerConfiguration->GetTxPower());
 }
 
+
 void loop() 
 {
   OGNPacket *ReportPacket;
@@ -70,7 +67,7 @@ void loop()
   
   if( (TimeNow - ReportTime) > REPORTDELAY)
   {
-    if(GPS->location.isValid())
+    if(1)//GPS->location.isValid())
     {
       ReportTime = TimeNow;
       
@@ -86,12 +83,12 @@ void loop()
       ReportPacket = new OGNPacket;
       FormRFPacket(ReportPacket);
         
-      //Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8682);
-      Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8684);
+      //Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8684,TrackerConfiguration->GetTxPower());
+      //ReportPacket->PrintRawPacket();
+      
+      Radio->StartRecieve(F8684, ReportPacket->ManchesterPacket); RecieveActive = true;
       
       delete ReportPacket;
-      
-      Radio->StartRecieve(); RecieveActive = true;       
     }
   }
   
@@ -103,7 +100,13 @@ void loop()
   
   if(RecieveActive)
   {
-    Radio->CheckRecieve();
+    if(Radio->CheckRecieve())
+    {
+      ReportPacket = new OGNPacket;
+      Radio->GetRecievePacket(ReportPacket->ManchesterPacket);
+      DecodeRFPacket(ReportPacket);
+      delete ReportPacket;
+    }
   }
 }
 
@@ -126,6 +129,17 @@ void FormRFPacket(OGNPacket *Packet)
   Packet->AddFEC();
   
   Packet->ManchesterEncodePacket();
+}
+
+void DecodeRFPacket(OGNPacket *Packet)
+{
+  Packet->ManchesterDecodePacket();
+  if(Packet->CheckFEC()!=0)
+    return;
+  Packet->DeWhiten();
+  Packet->PrintRawPacket();
+    
+  
 }
 
 #define NMEABUFFERSIZE 80
@@ -212,7 +226,7 @@ void ConfigurationReport(void)
     }
     
     Serial.print(F("Serial Baud Rate \t")); Serial.println(TrackerConfiguration->GetSerialBaud());
-    Serial.print(F("GPS Type is \t")); Serial.println("NMEA");
+    Serial.print(F("GPS Type is \t")); Serial.println(F("NMEA"));
     Serial.print(F("GPS Baud Rate \t")); Serial.println(TrackerConfiguration->GetGPSBaud(),DEC);
     Serial.print(F("Listening for data on pin "));  Serial.println(TrackerConfiguration->GetDataInPin(),DEC);
     Serial.print(F("Sending Data to GPS on pin "));  Serial.println(TrackerConfiguration->GetDataOutPin(),DEC);

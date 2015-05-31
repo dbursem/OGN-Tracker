@@ -161,7 +161,6 @@ void OGNPacket::MakeAltitude(uint16_t Rate, uint16_t Speed, uint16_t Altitude)
 void OGNPacket::MakeHeading(uint8_t Type, uint8_t Private, int16_t Climb, uint16_t Heading)
 {
   uint32_t *PayloadWord;
-  uint32_t ulHeading = 0;
   int32_t lClimb = 0;
   uint32_t ulType = 0;
 
@@ -169,7 +168,7 @@ void OGNPacket::MakeHeading(uint8_t Type, uint8_t Private, int16_t Climb, uint16
   
   *PayloadWord = 0;
   
-  ulHeading = Heading; lClimb = Climb; ulType = Type;
+  lClimb = Climb; ulType = Type;
   
   *PayloadWord = Heading & 0x3FF;
   
@@ -196,82 +195,14 @@ void print_hex(uint8_t i)
 }
     
 
-void print_binary(uint8_t v, int16_t num_places)
-{
-    int16_t mask=0, n;
-
-    for (n=1; n<=num_places; n++)
-    {
-        mask = (mask << 1) | 0x0001;
-    }
-    v = v & mask;  // truncate v to specified number of places
-
-    while(num_places)
-    {
-        if (v & (0x0001 << num_places-1))
-        {
-             Serial.print("1");
-        }
-        else
-        {
-             Serial.print("0");
-        }
-
-        --num_places;
-        if(((num_places%4) == 0) && (num_places != 0))
-        {
-            Serial.print("_");
-        }
-    }
-}
-
 
 void OGNPacket::PrintRawPacket(void)
 {
   int16_t i;
-  int16_t j;
   
   for(i=0;i<OGNPACKETSIZE;i++)
   {
     print_hex(RawPacket[i]); 
-  }
-  Serial.println();
-  
-  return;
-  
-  for(i=0;i<OGNPACKETSIZE/4;i++)
-  {
-    print_hex(i); Serial.print("\t");
-    for(j=0;j<4;j++)
-    {
-       print_binary(RawPacket[(4*i) + j], 8); Serial.print(" ");
-    }
-    for(j=0;j<4;j++)
-    {
-      print_hex(RawPacket[(4*i) + j]);
-    }
-    Serial.println();
-  }
-  Serial.println();
-}
-
-void OGNPacket::PrintCodedPacket(void)
-{
-  int16_t i;
-  int16_t j;
-  
-  for(i=0;i<2*OGNPACKETSIZE/4;i++)
-  {
-    print_hex(i); Serial.print("\t");
-    for(j=0;j<4;j++)
-    {
-       print_binary(ManchesterPacket[(4*i) + j], 8); Serial.print(" ");
-    }
-    for(j=0;j<4;j++)
-    {
-      print_hex(ManchesterPacket[(4*i) + j]);
-    }
-    Serial.println();
   }
   Serial.println();
 }
@@ -289,6 +220,7 @@ void OGNPacket::FixEndianess(uint16_t Index)
   RawPacket[Index+2] = temp;
 }
 
+
 void OGNPacket::Whiten(void)
 {
   TEA *Coder;
@@ -297,6 +229,19 @@ void OGNPacket::Whiten(void)
   
   Coder->TEAEncrypt(Payload+1,8);
   Coder->TEAEncrypt(Payload+3,8);
+  
+  delete Coder;
+}
+
+
+void OGNPacket::DeWhiten(void)
+{
+  TEA *Coder;
+  
+  Coder = new TEA();
+  
+  Coder->TEADecrypt(Payload+1,8);
+  Coder->TEADecrypt(Payload+3,8);
   
   delete Coder;
 }
@@ -310,6 +255,19 @@ void OGNPacket::AddFEC(void)
   Coder->LDPC_EncodeBlock(Payload, FEC);
   
   delete Coder;
+}
+
+int8_t OGNPacket::CheckFEC(void)
+{
+  int8_t result;
+  LDPC *Coder;
+  
+  Coder = new LDPC();
+  
+  result = Coder->LDPC_CheckBlock(Payload);
+  
+  delete Coder;
+  return result;
 }
 
 const uint8_t ManchesterEncodeTable[0x10] =  // lookup table for 4-bit nibbles for quick Manchester encoding
@@ -340,6 +298,46 @@ void OGNPacket::ManchesterEncodePacket(void)
   {
      ManchesterPacket[2*i] =  ManchesterEncodeTable [((RawPacket[i]&0xf0)>>4)];
      ManchesterPacket[(2*i) + 1] = ManchesterEncodeTable [(RawPacket[i]&0x0f)];
+  }
+}
+
+uint8_t OGNPacket::ManchesterDecode(uint8_t InpByte)
+{
+  switch(InpByte)
+  {
+    case 0xAA : return 0x00;
+    case 0xA9 : return 0x01;
+    case 0xA6 : return 0x02;
+    case 0xA5 : return 0x03;
+    case 0x9A : return 0x04; 
+    case 0x99 : return 0x05;
+    case 0x96 : return 0x06;
+    case 0x95 : return 0x07;
+    case 0x6A : return 0x08;
+    case 0x69 : return 0x09;
+    case 0x66 : return 0x0A;
+    case 0x65 : return 0x0B;
+    case 0x5A : return 0x0C;
+    case 0x59 : return 0x0D;
+    case 0x56 : return 0x0E;
+    case 0x55 : return 0x0F;
+    default : return 0;
+  }
+}
+
+    
+  
+
+void OGNPacket::ManchesterDecodePacket(void)
+{
+  uint8_t i;
+  uint8_t Upper,Lower;
+  
+  for(i=0;i<OGNPACKETSIZE;i++)
+  {
+    Upper = ManchesterDecode(ManchesterPacket[2*i]);
+    Lower = ManchesterDecode(ManchesterPacket[(2*i) + 1]);
+    RawPacket[i] = (Upper << 4) + Lower;
   }
 }
 

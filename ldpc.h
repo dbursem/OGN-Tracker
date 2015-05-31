@@ -30,6 +30,11 @@ class LDPC
     void LDPC_Encode(const uint32_t *Data, uint32_t *Parity, const uint32_t ParityGen[48][5]);
     void LDPC_EncodeBlock(const uint32_t *Data, uint32_t *Parity);
     
+    int8_t LDPC_Check(const uint8_t *Data);
+    int8_t LDPC_CheckBlock(const uint32_t *Packet);
+    
+
+    
   protected:
     uint8_t u8Count1s(uint8_t Byte);
     uint8_t u32Count1s(uint32_t uWord);
