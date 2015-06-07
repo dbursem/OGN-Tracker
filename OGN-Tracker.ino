@@ -28,6 +28,7 @@
 #include "OGNRadio.h"
 #include "Configuration.h"
 #include "OGNPacket.h"
+#include "RecieveQueue.h"
 
 void FormRFPacket(OGNPacket *Packet);
 void ProcessGPS(OGNGPS *GPS);
@@ -36,6 +37,8 @@ void ProcessGPS(OGNGPS *GPS);
 OGNGPS *GPS;
 OGNRadio *Radio;
 Configuration *TrackerConfiguration;
+RecieveQueue *RecievedData;
+
 uint8_t RecieveActive = false;
 
 uint32_t ReportTime = 0;
@@ -47,7 +50,9 @@ void setup()
   TrackerConfiguration = new Configuration();
   TrackerConfiguration->LoadConfiguration();
   
-  Serial.begin(115200);
+  RecievedData = new RecieveQueue();
+  
+  Serial.begin(57600);
   ConfigurationReport();
 
   GPS = new OGNGPS(TrackerConfiguration->GetDataInPin(),TrackerConfiguration->GetDataOutPin());
@@ -67,7 +72,7 @@ void loop()
   
   if( (TimeNow - ReportTime) > REPORTDELAY)
   {
-    if(1)//GPS->location.isValid())
+    if(GPS->location.isValid())
     {
       ReportTime = TimeNow;
       
@@ -83,7 +88,7 @@ void loop()
       ReportPacket = new OGNPacket;
       FormRFPacket(ReportPacket);
         
-      //Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8684,TrackerConfiguration->GetTxPower());
+      Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8684,TrackerConfiguration->GetTxPower());
       //ReportPacket->PrintRawPacket();
       
       Radio->StartRecieve(F8684, ReportPacket->ManchesterPacket); RecieveActive = true;
@@ -135,9 +140,14 @@ void DecodeRFPacket(OGNPacket *Packet)
 {
   Packet->ManchesterDecodePacket();
   if(Packet->CheckFEC()!=0)
+  {
+    Serial.println("CRC Error");
+ 
     return;
+  }
   Packet->DeWhiten();
-  Packet->PrintRawPacket();
+  RecievedData->AddPacket((uint32_t *)&Packet->RawPacket[4]);
+  //Packet->PrintRawPacket();
     
   
 }
@@ -164,7 +174,14 @@ void ProcessGPS(OGNGPS *GPS)
          NMEABuffer[BufferUsed] = '\0';
          BufferUsed = 0;
          if( millis() > (TrackerConfiguration->GetNMEADelay()*1000) )
+         {
            Serial.println((char *)NMEABuffer);
+           if(RecievedData->Available())
+           {
+             //Serial.println("Insert Data");
+             RecievedData->RemovePacket();
+           }
+         }
       }
       else
       {

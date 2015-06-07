@@ -40,13 +40,13 @@ void Configuration::LoadConfiguration(uint32_t TempAddress )
     cs.AddressType = ADDRESS_TYPE_OGN ;
     cs.AircraftType = AIRCRAFT_TYPE_UNKNOWN;
     cs.Private = 0;
-    cs.SerialBaud = 115200;
+    cs.SerialBaud = 57600;
     cs.GPSBaud = 9600;
     cs.DataInPin = 4;
     cs.DataOutPin = 5;
     cs.TxPower = 14;
     cs.NMEAOut = 1;
-    cs.NMEADelay = 60;
+    cs.NMEADelay = 120;
   } 
   else
   {

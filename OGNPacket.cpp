@@ -113,7 +113,7 @@ void OGNPacket::MakeLatitude(uint8_t Quality, uint8_t UTCSecond, int32_t Latitud
   
   *PayloadWord = *PayloadWord | lQuality  | lSecond;
   
-  FixEndianess(0x08);
+  //FixEndianess(0x08);
 }  
 
 void OGNPacket::MakeLongitude(uint8_t Fix, uint8_t Baro, uint16_t DOP, int32_t Longitude)
