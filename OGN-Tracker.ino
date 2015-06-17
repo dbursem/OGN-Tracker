@@ -52,7 +52,7 @@ void setup()
   
   RecievedData = new RecieveQueue();
   
-  Serial.begin(57600);
+  Serial.begin(115200);
   ConfigurationReport();
 
   GPS = new OGNGPS(TrackerConfiguration->GetDataInPin(),TrackerConfiguration->GetDataOutPin());
@@ -178,7 +178,7 @@ void ProcessGPS(OGNGPS *GPS)
            Serial.println((char *)NMEABuffer);
            if(RecievedData->Available())
            {
-             //Serial.println("Insert Data");
+             ProcessRecievedPackets(GPS);
              RecievedData->RemovePacket();
            }
          }
@@ -199,10 +199,23 @@ void ProcessGPS(OGNGPS *GPS)
   }
 }
 
+#define PI_OVER_180 0.0174532925
 
+void ProcessRecievedPackets(OGNGPS *GPS)
+{
+  float TargetLatitude, TargetLongitude;
+  float TargetDistance, TargetBearing;
+  int32_t NorthDist, EastDist;
 
-
-
+  TargetLatitude = RecievedData->GetLatitude();
+  TargetLongitude = RecievedData->GetLongitude();
+  TargetDistance = GPS->distanceBetween(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
+  TargetBearing = PI_OVER_180 * GPS->courseTo(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
+  NorthDist = TargetDistance * cos(TargetBearing);
+  EastDist = TargetDistance * sin(TargetBearing);
+  Serial.print("Contact is "); Serial.print(NorthDist); Serial.print("m North and East by "); Serial.println(EastDist);
+}  
+  
 
 
 

@@ -44,8 +44,7 @@ void RecieveQueue::AddPacket(uint32_t *Data)
   }
   memcpy(Packet[WritePtr], Data, 5*sizeof(uint32_t));
   WritePtr ++; WritePtr = WritePtr % QUEUESIZE;
-  //Serial.println(WritePtr); Serial.println(ReadPtr);
-} 
+  } 
 
 uint8_t RecieveQueue::Available(void)
 {
@@ -63,3 +62,21 @@ void RecieveQueue::RemovePacket(void)
   }
 }
 
+float RecieveQueue::GetLatitude(void)
+{
+  PACKET *TargetPacket;
+  int32_t *ptrLatitude;
+  int32_t Latitude;
+  
+  
+  TargetPacket = &Packet[ReadPtr];
+  ptrLatitude = (int32_t *)&TargetPacket[1];
+  Latitude = (*ptrLatitude) & 0x00FFFFFF;
+  
+  return 52;
+}
+
+float RecieveQueue::GetLongitude(void)
+{
+  return 0;
+}

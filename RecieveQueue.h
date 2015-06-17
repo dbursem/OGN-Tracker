@@ -34,6 +34,8 @@ class RecieveQueue
     void AddPacket(uint32_t *Data);
     uint8_t Available(void);
     void RemovePacket(void);
+    float GetLatitude(void);
+    float GetLongitude(void);
   protected:
 				
   private:
