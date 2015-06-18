@@ -42,7 +42,7 @@ void RecieveQueue::AddPacket(uint32_t *Data)
   {
     ReadPtr ++; ReadPtr = ReadPtr % QUEUESIZE;
   }
-  memcpy(Packet[WritePtr], Data, 5*sizeof(uint32_t));
+  memcpy(&Queue[WritePtr], Data, sizeof(RecievePacket));
   WritePtr ++; WritePtr = WritePtr % QUEUESIZE;
   } 
 
@@ -64,19 +64,47 @@ void RecieveQueue::RemovePacket(void)
 
 float RecieveQueue::GetLatitude(void)
 {
-  PACKET *TargetPacket;
-  int32_t *ptrLatitude;
   int32_t Latitude;
+  float fLatitude;
   
+  Latitude = Queue[ReadPtr].Latitude & 0x00FFFFFF;
+  fLatitude = Latitude;
   
-  TargetPacket = &Packet[ReadPtr];
-  ptrLatitude = (int32_t *)&TargetPacket[1];
-  Latitude = (*ptrLatitude) & 0x00FFFFFF;
+  fLatitude = fLatitude * 8 / 600000;
   
-  return 52;
+  return fLatitude;
 }
 
 float RecieveQueue::GetLongitude(void)
 {
-  return 0;
+  int32_t Longitude;
+  float fLongitude;
+  
+  Longitude = Queue[ReadPtr].Longitude & 0x00FFFFFF;
+
+  if(Longitude & 0x00800000) Longitude = Longitude | 0xFF000000;
+  
+  fLongitude = Longitude;
+  
+  fLongitude = fLongitude * 16 / 600000;
+ 
+  return fLongitude;
+}
+
+uint32_t RecieveQueue::GetID(void)
+{
+  uint32_t ID;
+  
+  ID = (Queue[ReadPtr].Address & 0x0FFFFFF);
+  
+  return ID;
+}
+
+uint8_t RecieveQueue::GetType(void)
+{
+  uint32_t Type;
+  
+  Type = (Queue[ReadPtr].Heading >> 20)& 0x0F;
+  
+  return (uint8_t)Type;
 }

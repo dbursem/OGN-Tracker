@@ -22,9 +22,16 @@
 #include <stdint.h>
 
 #define QUEUESIZE 5
-#define PACKETSIZE 5
 
-typedef uint32_t PACKET[PACKETSIZE] ;
+typedef struct
+{
+  uint32_t Address;
+  uint32_t Latitude;
+  uint32_t Longitude;
+  uint32_t Altitude;
+  uint32_t Heading;
+} RecievePacket;
+  
 
 /////////////////////////////////////////////////////////////////////
 class RecieveQueue 
@@ -36,11 +43,13 @@ class RecieveQueue
     void RemovePacket(void);
     float GetLatitude(void);
     float GetLongitude(void);
+    uint32_t GetID(void);
+    uint8_t GetType(void);
   protected:
 				
   private:
     uint8_t ReadPtr,WritePtr;
-    PACKET Packet[QUEUESIZE];        
+    RecievePacket Queue[QUEUESIZE];        
 };
 
 

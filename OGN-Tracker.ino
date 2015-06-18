@@ -141,15 +141,11 @@ void DecodeRFPacket(OGNPacket *Packet)
   Packet->ManchesterDecodePacket();
   if(Packet->CheckFEC()!=0)
   {
-    Serial.println("CRC Error");
- 
+    //Serial.println("CRC Error");
     return;
   }
   Packet->DeWhiten();
   RecievedData->AddPacket((uint32_t *)&Packet->RawPacket[4]);
-  //Packet->PrintRawPacket();
-    
-  
 }
 
 #define NMEABUFFERSIZE 80
@@ -205,7 +201,10 @@ void ProcessRecievedPackets(OGNGPS *GPS)
 {
   float TargetLatitude, TargetLongitude;
   float TargetDistance, TargetBearing;
+  
+  uint32_t ID;
   int32_t NorthDist, EastDist;
+  uint8_t AcType;
 
   TargetLatitude = RecievedData->GetLatitude();
   TargetLongitude = RecievedData->GetLongitude();
@@ -213,11 +212,38 @@ void ProcessRecievedPackets(OGNGPS *GPS)
   TargetBearing = PI_OVER_180 * GPS->courseTo(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
   NorthDist = TargetDistance * cos(TargetBearing);
   EastDist = TargetDistance * sin(TargetBearing);
-  Serial.print("Contact is "); Serial.print(NorthDist); Serial.print("m North and East by "); Serial.println(EastDist);
+  ID = RecievedData->GetID();
+  AcType = RecievedData->GetType();
+  SendTargetString(NorthDist,EastDist,ID,AcType);
 }  
   
-
-
+void SendTargetString(int32_t North, int32_t East, uint32_t ID, uint8_t AcType)
+{
+  String NMEAString;
+  uint32_t i;
+  uint32_t Check = 0;
+  
+  NMEAString += F("$PFLAA,0,");
+  NMEAString += North;
+  NMEAString += F(",");
+  NMEAString += East;
+  NMEAString += F(",0,");
+  NMEAString += String(ID,HEX);
+  NMEAString += F(",0,0,0,0,");
+  NMEAString += String(AcType,DEC);
+  
+  for(i=1;i<NMEAString.length();i++)
+  {
+    Check ^= NMEAString.charAt(i);
+  }
+  
+  NMEAString += F("*");
+  NMEAString += String(Check,HEX);
+  
+  NMEAString.toUpperCase();
+  
+  Serial.println(NMEAString);
+}
 
 
 
