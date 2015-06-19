@@ -34,8 +34,12 @@ I used the Arduino build environment. It is available to download here
 www.arduino.cc
 
 In addition you need the following libraries
-TinyGPSPlus - This is installable through the library manager
-RFM69 - Again available through download manager.
+TinyGPSPlus and RFM69 
+
+RFM69 is available here https://github.com/LowPowerLab/RFM69
+TinyGPSPlus here https://github.com/mikalhart/TinyGPSPlus/releases
+
+Download and install them into your appropriate folders in your Arduion\libraries folder
 
 Setup / Configuration
 
