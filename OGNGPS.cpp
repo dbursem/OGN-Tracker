@@ -125,9 +125,9 @@ uint32_t OGNGPS::GetOGNAltitude(void)
   else if (Altitude < 0x3000)
     return (0x1000 + ((Altitude - 0x1000)/2));
   else if (Altitude < 0x7000)
-    return (0x1000 + ((Altitude - 0x3000)/4));
+    return (0x2000 + ((Altitude - 0x3000)/4));
   else if (Altitude < 0xF000)
-    return (0x1000 + ((Altitude - 0x7000)/8));
+    return (0x3000 + ((Altitude - 0x7000)/8));
   else return 0x3FFF;  
 }
 

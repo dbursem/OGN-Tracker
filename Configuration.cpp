@@ -114,12 +114,12 @@ void Configuration::SetDataOutPin(uint8_t Pin)
   cs.DataOutPin = Pin;
 }
 
-uint8_t Configuration::GetTxPower(void)
+int8_t Configuration::GetTxPower(void)
 {
   return cs.TxPower;
 }
 
-void Configuration::SetTxPower(uint8_t Power)
+void Configuration::SetTxPower(int8_t Power)
 {
   cs.TxPower = Power;
 }

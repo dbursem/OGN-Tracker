@@ -94,7 +94,6 @@ class OGNPacket
 				
   private:
     const uint8_t DefaultSync[4] = { 0x0A, 0xF3, 0x65, 0x6C };
-    //uint8_t DefaultSync[4] = { 0xF5, 0x31, 0xFA, 0xB6 };
     
     void FixEndianess(uint16_t Index);
     uint8_t u8Count1s(uint8_t Byte);

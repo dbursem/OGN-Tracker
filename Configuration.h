@@ -54,7 +54,7 @@ struct Configuration_Struct
   uint32_t GPSBaud;
   uint8_t AddressType; 
   uint8_t AircraftType;
-  uint8_t TxPower;
+  int8_t TxPower;
   uint8_t NMEAOut;
   uint32_t NMEADelay;
 };   
@@ -91,8 +91,8 @@ class Configuration
     uint8_t GetDataOutPin(void);
     void SetDataOutPin(uint8_t Pin);
 
-    uint8_t GetTxPower(void);
-    void SetTxPower(uint8_t Power);
+    int8_t GetTxPower(void);
+    void SetTxPower(int8_t Power);
     
     uint8_t GetNMEAOut(void);
     void SetNMEAOut(uint8_t Out);

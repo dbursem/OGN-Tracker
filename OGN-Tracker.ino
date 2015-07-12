@@ -23,12 +23,14 @@
 #include <EEPROM.h>
 #include <stdint.h>
 
-
 #include "OGNGPS.h"
 #include "OGNRadio.h"
 #include "Configuration.h"
 #include "OGNPacket.h"
-#include "RecieveQueue.h"
+#include "ReceiveQueue.h"
+
+
+//#define LOCALTEST
 
 void FormRFPacket(OGNPacket *Packet);
 void ProcessGPS(OGNGPS *GPS);
@@ -37,9 +39,9 @@ void ProcessGPS(OGNGPS *GPS);
 OGNGPS *GPS;
 OGNRadio *Radio;
 Configuration *TrackerConfiguration;
-RecieveQueue *RecievedData;
+ReceiveQueue *ReceivedData;
 
-uint8_t RecieveActive = false;
+uint8_t ReceiveActive = false;
 
 uint32_t ReportTime = 0;
 #define REPORTDELAY 1000
@@ -50,7 +52,7 @@ void setup()
   TrackerConfiguration = new Configuration();
   TrackerConfiguration->LoadConfiguration();
   
-  RecievedData = new RecieveQueue();
+  ReceivedData = new ReceiveQueue();
   
   Serial.begin(115200);
   ConfigurationReport();
@@ -72,14 +74,18 @@ void loop()
   
   if( (TimeNow - ReportTime) > REPORTDELAY)
   {
+#ifdef LOCALTEST
+    if(1)
+#else
     if(GPS->location.isValid())
+#endif
     {
       ReportTime = TimeNow;
       
-      if(RecieveActive)
+      if(ReceiveActive)
       {
-        Radio->EndRecieve();
-        RecieveActive = false;
+        Radio->EndReceive();
+        ReceiveActive = false;
       }
       
       GPS->CalculateTurnRate(TimeNow);
@@ -89,26 +95,24 @@ void loop()
       FormRFPacket(ReportPacket);
         
       Radio->SendPacket(ReportPacket->ManchesterPacket,OGNPACKETSIZE*2,F8684,TrackerConfiguration->GetTxPower());
-      //ReportPacket->PrintRawPacket();
-      
-      Radio->StartRecieve(F8684, ReportPacket->ManchesterPacket); RecieveActive = true;
+            
+      Radio->StartReceive(F8684, ReportPacket->ManchesterPacket); ReceiveActive = true;
       
       delete ReportPacket;
     }
   }
-  
 
   if(Serial.available())
   {
     ProcessSerial();
   }
   
-  if(RecieveActive)
+  if(ReceiveActive)
   {
-    if(Radio->CheckRecieve())
+    if(Radio->CheckReceive())
     {
       ReportPacket = new OGNPacket;
-      Radio->GetRecievePacket(ReportPacket->ManchesterPacket);
+      Radio->GetReceivePacket(ReportPacket->ManchesterPacket);
       DecodeRFPacket(ReportPacket);
       delete ReportPacket;
     }
@@ -141,11 +145,14 @@ void DecodeRFPacket(OGNPacket *Packet)
   Packet->ManchesterDecodePacket();
   if(Packet->CheckFEC()!=0)
   {
-    //Serial.println("CRC Error");
+#ifdef LOCALTEST
+    Serial.print("CRC Error "); Serial.println(Packet->CheckFEC(),DEC);
+    Packet->PrintRawPacket();
+#endif
     return;
   }
   Packet->DeWhiten();
-  RecievedData->AddPacket((uint32_t *)&Packet->RawPacket[4]);
+  ReceivedData->AddPacket((uint32_t *)&Packet->RawPacket[4]);
 }
 
 #define NMEABUFFERSIZE 80
@@ -172,10 +179,10 @@ void ProcessGPS(OGNGPS *GPS)
          if( millis() > (TrackerConfiguration->GetNMEADelay()*1000) )
          {
            Serial.println((char *)NMEABuffer);
-           if(RecievedData->Available())
+           if(ReceivedData->Available())
            {
-             ProcessRecievedPackets(GPS);
-             RecievedData->RemovePacket();
+             ProcessReceivedPackets(GPS);
+             ReceivedData->RemovePacket();
            }
          }
       }
@@ -197,27 +204,32 @@ void ProcessGPS(OGNGPS *GPS)
 
 #define PI_OVER_180 0.0174532925
 
-void ProcessRecievedPackets(OGNGPS *GPS)
+void ProcessReceivedPackets(OGNGPS *GPS)
 {
   float TargetLatitude, TargetLongitude;
   float TargetDistance, TargetBearing;
   
   uint32_t ID;
+  int32_t Altitude;
   int32_t NorthDist, EastDist;
   uint8_t AcType;
+  uint16_t Heading;
 
-  TargetLatitude = RecievedData->GetLatitude();
-  TargetLongitude = RecievedData->GetLongitude();
+  TargetLatitude = ReceivedData->GetLatitude();
+  TargetLongitude = ReceivedData->GetLongitude();
   TargetDistance = GPS->distanceBetween(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
   TargetBearing = PI_OVER_180 * GPS->courseTo(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
   NorthDist = TargetDistance * cos(TargetBearing);
   EastDist = TargetDistance * sin(TargetBearing);
-  ID = RecievedData->GetID();
-  AcType = RecievedData->GetType();
-  SendTargetString(NorthDist,EastDist,ID,AcType);
+  ID = ReceivedData->GetID();
+  AcType = ReceivedData->GetType();
+  Altitude = ReceivedData->GetAltitude();
+  Altitude = Altitude - GPS->altitude.meters();
+  Heading = ReceivedData->GetHeading();
+  SendTargetString(NorthDist,EastDist,ID,AcType,Altitude,Heading);
 }  
   
-void SendTargetString(int32_t North, int32_t East, uint32_t ID, uint8_t AcType)
+void SendTargetString(int32_t North, int32_t East, uint32_t ID, uint8_t AcType, int32_t Altitude, uint16_t Heading)
 {
   String NMEAString;
   uint32_t i;
@@ -227,9 +239,13 @@ void SendTargetString(int32_t North, int32_t East, uint32_t ID, uint8_t AcType)
   NMEAString += North;
   NMEAString += F(",");
   NMEAString += East;
-  NMEAString += F(",0,");
+  NMEAString += F(",");
+  NMEAString += Altitude;
+  NMEAString += F(",1,");
   NMEAString += String(ID,HEX);
-  NMEAString += F(",0,0,0,0,");
+  NMEAString += F(",");
+  NMEAString += String(Heading,HEX);
+  NMEAString += F("0,0,0,");
   NMEAString += String(AcType,DEC);
   
   for(i=1;i<NMEAString.length();i++)
@@ -238,6 +254,7 @@ void SendTargetString(int32_t North, int32_t East, uint32_t ID, uint8_t AcType)
   }
   
   NMEAString += F("*");
+  if(Check<0x10) NMEAString += F("0");
   NMEAString += String(Check,HEX);
   
   NMEAString.toUpperCase();

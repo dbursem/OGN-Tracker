@@ -207,7 +207,6 @@ void OGNPacket::PrintRawPacket(void)
   Serial.println();
 }
 
-
 void OGNPacket::FixEndianess(uint16_t Index)
 {
   uint8_t temp;

@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RECIEVEQUEUE_h
-#define RECIEVEQUEUE_h
+#ifndef ReceivEQUEUE_h
+#define ReceivEQUEUE_h
 
 #include <stdint.h>
 
@@ -30,14 +30,14 @@ typedef struct
   uint32_t Longitude;
   uint32_t Altitude;
   uint32_t Heading;
-} RecievePacket;
+} ReceivePacket;
   
 
 /////////////////////////////////////////////////////////////////////
-class RecieveQueue 
+class ReceiveQueue 
 {
   public:
-    RecieveQueue(void);
+    ReceiveQueue(void);
     void AddPacket(uint32_t *Data);
     uint8_t Available(void);
     void RemovePacket(void);
@@ -45,11 +45,13 @@ class RecieveQueue
     float GetLongitude(void);
     uint32_t GetID(void);
     uint8_t GetType(void);
+    uint32_t GetAltitude(void);
+    uint16_t GetHeading(void);
   protected:
 				
   private:
     uint8_t ReadPtr,WritePtr;
-    RecievePacket Queue[QUEUESIZE];        
+    ReceivePacket Queue[QUEUESIZE];        
 };
 
 

@@ -35,16 +35,16 @@ class OGNRadio
     void Initialise(uint8_t Power);
     void SendPacket(uint8_t *Packet, uint16_t Size, uint16_t Freq, uint8_t TxPower);
     
-    void StartRecieve(uint8_t Freq, uint8_t *Sync);
-    uint8_t CheckRecieve(void);
-    void GetRecievePacket(uint8_t *Packet);
-    void EndRecieve(void);
+    void StartReceive(uint8_t Freq, uint8_t *Sync);
+    uint8_t CheckReceive(void);
+    void GetReceivePacket(uint8_t *Packet);
+    void EndReceive(void);
       
   protected:
 				
   private:
     void ClearIRQFlags(void);
-    void SetTxPower(uint8_t Power);
+    void SetTxPower(int8_t Power);
     void SetFrequency(uint8_t Freq);
     void WriteRegister(uint8_t Register, uint8_t Data);
     uint8_t ReadRegister(uint8_t Register);

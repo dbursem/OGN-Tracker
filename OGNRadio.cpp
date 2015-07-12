@@ -92,7 +92,7 @@ void OGNRadio::SendPacket(uint8_t *Packet, uint16_t Size, uint16_t Freq, uint8_t
 }
 
 
-void OGNRadio::StartRecieve(uint8_t Freq, uint8_t *Sync)
+void OGNRadio::StartReceive(uint8_t Freq, uint8_t *Sync)
 {
   uint8_t i;
   uint8_t SyncValueRegister = REG_SYNCVALUE1;
@@ -107,26 +107,31 @@ void OGNRadio::StartRecieve(uint8_t Freq, uint8_t *Sync)
   
   WriteRegister(REG_SYNCCONFIG,RF_SYNC_ON | RF_SYNC_SIZE_8 | RF_SYNC_TOL_0);
   WriteRegister(REG_PAYLOADLENGTH, 56);
-  WriteRegister(REG_LNA,RF_LNA_ZIN_200 | RF_LNA_GAINSELECT_AUTO | RF_LNA_LOWPOWER_OFF | RF_LNA_CURRENTGAIN );
-  WriteRegister(REG_RXBW,0x4A);
-  WriteRegister(REG_AFCBW,0x89);
+  WriteRegister(REG_LNA,RF_LNA_ZIN_50 | RF_LNA_GAINSELECT_AUTO | RF_LNA_LOWPOWER_OFF | RF_LNA_CURRENTGAIN );
+  WriteRegister(REG_RXBW,RF_RXBW_DCCFREQ_101 | RF_RXBW_MANT_20 | RF_RXBW_EXP_2);
+  
+  
+  WriteRegister(REG_AFCBW,RF_AFCBW_DCCFREQAFC_100 | RF_AFCBW_MANTAFC_20 | RF_AFCBW_EXPAFC_2);
+  WriteRegister(REG_AFCCTRL,RF_AFCCTRL_LOWBETA_ON);
+  WriteRegister(REG_AFCFEI,RF_AFCFEI_AFCAUTO_ON);
+  
+  WriteRegister(REG_RSSITHRESH, 220);
   WriteRegister(REG_TESTLNA,RF_TESTLNA_HIGH_SENSITIVITY);
   WriteRegister(REG_TESTDAGC,RF_DAGC_IMPROVED_LOWBETA0);
   WriteRegister(REG_AFCFEI,RF_AFCFEI_AFCAUTOCLEAR_OFF);
-  WriteRegister(REG_AFCCTRL,RF_AFCCTRL_LOWBETA_ON);
   ClearIRQFlags(); 
   
   WriteRegister(REG_OPMODE , RF_DATAMODUL_MODULATIONTYPE_FSK  | RF_OPMODE_LISTEN_OFF | RF_OPMODE_RECEIVER);
   
 }
 
-void OGNRadio::EndRecieve(void)
+void OGNRadio::EndReceive(void)
 {
   WriteRegister(REG_OPMODE, RF_DATAMODUL_MODULATIONTYPE_FSK  | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY);
-  //Disable reciever
+  //Disable receiver
 }
 
-uint8_t OGNRadio::CheckRecieve(void)
+uint8_t OGNRadio::CheckReceive(void)
 {
   if((ReadRegister(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY ) == RF_IRQFLAGS2_PAYLOADREADY)
   {
@@ -138,7 +143,7 @@ uint8_t OGNRadio::CheckRecieve(void)
   }  
 }
 
-void OGNRadio::GetRecievePacket(uint8_t *Packet)
+void OGNRadio::GetReceivePacket(uint8_t *Packet)
 {
   uint8_t i;
   
@@ -164,15 +169,35 @@ void OGNRadio::SetFrequency(uint8_t Freq)
   }  
 }  
 
-void OGNRadio::SetTxPower(uint8_t Power)
+void OGNRadio::SetTxPower(int8_t Power)
 {
-  if(Power <4 ) Power = 4;
+  if(Power <-18 ) Power = -18;
   if(Power >20) Power = 20;
-  Power += 11;
-  WriteRegister(REG_PALEVEL, RF_PALEVEL_PA0_OFF | RF_PALEVEL_PA1_ON | RF_PALEVEL_PA2_ON | (Power & 0x1F));
-  WriteRegister(REG_OCP, RF_OCP_OFF);
-  WriteRegister(REG_TESTPA1,0x5D);
-  WriteRegister(REG_TESTPA2,0x7C);
+  
+  if(Power <= 13)
+  {
+    Power += 18;
+    WriteRegister(REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | (Power & 0x1f));
+    WriteRegister(REG_TESTPA1,0x55);
+    WriteRegister(REG_TESTPA2,0x70);
+    WriteRegister(REG_OCP, RF_OCP_ON);
+  }
+  else if(Power <= 17)
+  {
+    Power += 14;
+    WriteRegister(REG_PALEVEL, RF_PALEVEL_PA0_OFF | RF_PALEVEL_PA1_ON | RF_PALEVEL_PA2_ON | (Power & 0x1f));
+    WriteRegister(REG_TESTPA1,0x55);
+    WriteRegister(REG_TESTPA2,0x70);
+    WriteRegister(REG_OCP, RF_OCP_ON);
+  }
+  else
+  {
+    Power += 11;
+    WriteRegister(REG_PALEVEL, RF_PALEVEL_PA0_OFF | RF_PALEVEL_PA1_ON | RF_PALEVEL_PA2_ON | (Power & 0x1F));
+    WriteRegister(REG_OCP, RF_OCP_OFF);
+    WriteRegister(REG_TESTPA1,0x5D);
+    WriteRegister(REG_TESTPA2,0x7C);
+  }
 }
 
 void OGNRadio::ClearIRQFlags(void)
