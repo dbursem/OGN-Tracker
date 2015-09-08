@@ -18,7 +18,11 @@
 
 #include "ReceiveQueue.h"
 
-#include <arduino.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
 
 /* OGN Packet Map
 [00:03] [SSSS SSSS] [SSSS SSSS] [SSSS SSSS] [SSSS SSSS]  Sync Field 4 Bytes 0x0AF3656C

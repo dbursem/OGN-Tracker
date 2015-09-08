@@ -18,7 +18,12 @@
  
 #include "Configuration.h"
 #include "NVStore.h"
-#include <arduino.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
 
 
 Configuration::Configuration(void)

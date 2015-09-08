@@ -20,7 +20,13 @@
 #define OGNPACKET_h
 
 #include <stdint.h>
-#include <arduino.h>
+
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
 
 #include "TEA.h"
 #include "ldpc.h"

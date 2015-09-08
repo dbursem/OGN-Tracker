@@ -1,3 +1,5 @@
+
+
 /* 
     OGN Tracker Client
     Copyright (C) <2015>  <Mike Roberts>
@@ -17,8 +19,13 @@
 */
 #include "NVStore.h"
 
-#include <arduino.h>
-#include <eeprom.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
+#include <EEPROM.h>
 
 NVStore::NVStore(void)
 {
