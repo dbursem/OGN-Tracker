@@ -22,12 +22,12 @@
 #include <stdint.h>
 
 #include <SoftwareSerial.h>
-#include <TinyGPS++.h>
+#include <Adafruit_GPS.h>
 
-class OGNGPS : public TinyGPSPlus
+class OGNGPS : public Adafruit_GPS
 {
   public:
-    OGNGPS(uint8_t DataInPin, uint8_t DataOutPin);
+    OGNGPS(SoftwareSerial *ser);
     uint8_t ProcessInput(void);
     
     uint32_t GetOGNLatitude();
@@ -46,8 +46,7 @@ class OGNGPS : public TinyGPSPlus
   protected:
 				
   private:
-    SoftwareSerial *OGNGPSStream;
-    
+    void startInterrupt();
     int16_t LastHeading;
     int32_t LastAltitude;
     uint32_t TurnRate;

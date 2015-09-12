@@ -19,7 +19,7 @@
 #include <SPI.h>
 #include <RFM69registers.h>
 #include <SoftwareSerial.h>
-#include <TinyGPS++.h>
+#include <Adafruit_GPS.h>
 #include <EEPROM.h>
 #include <stdint.h>
 
@@ -30,13 +30,12 @@
 #include "ReceiveQueue.h"
 
 
-//#define LOCALTEST
+#define LOCALTEST
+#define GPSECHO true //makes Adafruit_GPS echo all NMEA data to Serial. 
+
 
 void FormRFPacket(OGNPacket *Packet);
-void ProcessGPS(OGNGPS *GPS);
 
-
-OGNGPS *GPS;
 OGNRadio *Radio;
 Configuration *TrackerConfiguration;
 ReceiveQueue *ReceivedData;
@@ -45,6 +44,8 @@ uint8_t ReceiveActive = false;
 
 uint32_t ReportTime = 0;
 #define REPORTDELAY 1000
+SoftwareSerial mySerial(TrackerConfiguration->GetDataInPin(),TrackerConfiguration->GetDataOutPin());
+OGNGPS *GPS;
 
 
 void setup() 
@@ -56,20 +57,29 @@ void setup()
   
   Serial.begin(115200);
   ConfigurationReport();
-
-  GPS = new OGNGPS(TrackerConfiguration->GetDataInPin(),TrackerConfiguration->GetDataOutPin());
+  GPS = new OGNGPS(&mySerial);
   Radio = new OGNRadio(); 
   Radio->Initialise(TrackerConfiguration->GetTxPower());
+  Serial.println("setup finished");
 }
 
-
+// Interrupt is called once a millisecond, looks for any new GPS data, and stores it
+SIGNAL(TIMER0_COMPA_vect) {
+  char c = GPS->read();
+  // if you want to debug, this is a good time to do it!
+#ifdef UDR0
+  if (GPSECHO)
+    if (c) UDR0 = c;  
+    // writing direct to UDR0 is much much faster than Serial.print 
+    // but only one character can be written at a time. 
+#endif
+}
 void loop() 
 {
+  Serial.println("X");
   OGNPacket *ReportPacket;
   uint32_t TimeNow;
   
-  ProcessGPS(GPS);
-
   TimeNow = millis();
   
   if( (TimeNow - ReportTime) > REPORTDELAY)
@@ -77,9 +87,10 @@ void loop()
 #ifdef LOCALTEST
     if(1)
 #else
-    if(GPS->location.isValid())
+    if(GPS->GetOGNFixQuality())
 #endif
     {
+      Serial.println(GPS->GetOGNFixQuality());
       ReportTime = TimeNow;
       
       if(ReceiveActive)
@@ -125,7 +136,7 @@ void FormRFPacket(OGNPacket *Packet)
  
   Packet->MakeHeader(false,false,0,false,TrackerConfiguration->GetAddressType(),TrackerConfiguration->GetAddress());
    
-  Packet->MakeLatitude(GPS->GetOGNFixQuality(), GPS->time.second(), GPS->GetOGNLatitude());
+  Packet->MakeLatitude(GPS->GetOGNFixQuality(), GPS->seconds, GPS->GetOGNLatitude());
     
   Packet->MakeLongitude(GPS->GetOGNFixMode(), 0, GPS->GetOGNDOP(), GPS->GetOGNLongitude());
   
@@ -217,14 +228,14 @@ void ProcessReceivedPackets(OGNGPS *GPS)
 
   TargetLatitude = ReceivedData->GetLatitude();
   TargetLongitude = ReceivedData->GetLongitude();
-  TargetDistance = GPS->distanceBetween(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
-  TargetBearing = PI_OVER_180 * GPS->courseTo(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
+  TargetDistance = 0;//GPS->distanceBetween(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
+  TargetBearing = 0;//PI_OVER_180 * GPS->courseTo(GPS->location.lat(), GPS->location.lng(),TargetLatitude, TargetLongitude);
   NorthDist = TargetDistance * cos(TargetBearing);
   EastDist = TargetDistance * sin(TargetBearing);
   ID = ReceivedData->GetID();
   AcType = ReceivedData->GetType();
   Altitude = ReceivedData->GetAltitude();
-  Altitude = Altitude - GPS->altitude.meters();
+  Altitude = Altitude - GPS->altitude;
   Heading = ReceivedData->GetHeading();
   SendTargetString(NorthDist,EastDist,ID,AcType,Altitude,Heading);
 }  
@@ -320,7 +331,7 @@ void ConfigurationReport(void)
 
 void StatusReport(void)
 { 
-  Serial.print(F("Tracking "));Serial.print(GPS->satellites.value()); Serial.println(F(" satellites"));
+  Serial.print(F("Tracking "));Serial.print(GPS->satellites); Serial.println(F(" satellites"));
 
 }
 

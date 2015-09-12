@@ -19,30 +19,20 @@
 #include "OGNGPS.h"
 
 
-OGNGPS::OGNGPS(uint8_t DataInPin, uint8_t DataOutPin):TinyGPSPlus()
+
+OGNGPS::OGNGPS(SoftwareSerial *ser) : Adafruit_GPS(ser)
 {
-  OGNGPSStream = new SoftwareSerial(DataInPin, DataOutPin);
-  OGNGPSStream->begin(9800);
   TurnRate = 0;
   ClimbRate = 0;
   LastAltitude = 0;
   LastHeading = 0;
 }
-
-uint8_t OGNGPS::ProcessInput(void)
-{
-  uint8_t c;
-  
-  if(OGNGPSStream->available() > 0)
-  {
-    c = OGNGPSStream->read();
-    TinyGPSPlus::encode(c);
-    return c;
-  }
-  else
-  {
-    return 0;
-  }
+void OGNGPS::startInterrupt() {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+    
 }
 
 void OGNGPS::CalculateClimbRate(int32_t TimeNow)
@@ -59,7 +49,7 @@ void OGNGPS::CalculateClimbRate(int32_t TimeNow)
   DeltaT = TimeNow - LastTime;
   LastTime = TimeNow; 
   
-  NewAltitude = (int32_t)TinyGPSPlus::altitude.meters();
+  NewAltitude = (int32_t)altitude;
   DeltaH = 10*(NewAltitude - LastAltitude);
   LastAltitude = NewAltitude;
   ClimbRate = DeltaH/DeltaT;
@@ -79,7 +69,7 @@ void OGNGPS::CalculateTurnRate(int32_t TimeNow)
   DeltaT = TimeNow - LastTime;
   LastTime = TimeNow; 
   
-  NewHeading = (int32_t)TinyGPSPlus::course.deg() * 2.84444;
+  NewHeading = (int32_t) angle * 1024 / 360;
   DeltaH = 10*(NewHeading - LastHeading);
   LastHeading = NewHeading;
   TurnRate = DeltaH/DeltaT;
@@ -88,13 +78,10 @@ void OGNGPS::CalculateTurnRate(int32_t TimeNow)
 
 uint32_t OGNGPS::GetOGNLatitude(void)
 {
-  uint32_t Latitude, Fraction;
+  uint32_t Latitude;
   
-  Latitude = TinyGPSPlus::location.rawLat().deg;
-  Fraction = TinyGPSPlus::location.rawLat().billionths;
-  Latitude *= 100000; Fraction /= 10000;
-  Latitude += Fraction;
-  if(TinyGPSPlus::location.rawLat().negative) Latitude *= -1;
+  Latitude = latitudeDegrees;
+  Latitude *= 100000;
   Latitude *= 6;
   Latitude /= 8;
   return Latitude;
@@ -102,12 +89,9 @@ uint32_t OGNGPS::GetOGNLatitude(void)
 
 uint32_t OGNGPS::GetOGNLongitude(void)
 {
-  uint32_t Longitude, Fraction;
-  Longitude = TinyGPSPlus::location.rawLng().deg;
-  Fraction = TinyGPSPlus::location.rawLng().billionths;
-  Longitude *= 100000; Fraction /= 10000;
-  Longitude += Fraction;
-  if(TinyGPSPlus::location.rawLng().negative) Longitude *= -1;
+  uint32_t Longitude;
+  Longitude = longitudeDegrees;
+  Longitude *= 100000;
   Longitude *= 6;
   Longitude /= 16;
   return Longitude;
@@ -116,7 +100,7 @@ uint32_t OGNGPS::GetOGNLongitude(void)
 uint32_t OGNGPS::GetOGNAltitude(void)
 {
   uint32_t Altitude;
-  Altitude = TinyGPSPlus::altitude.meters();
+  Altitude = altitude;
   
   if(Altitude <0)
     return 1;
@@ -134,7 +118,7 @@ uint32_t OGNGPS::GetOGNAltitude(void)
 uint32_t OGNGPS::GetOGNSpeed(void)
 {
   uint32_t Speed;
-  Speed = TinyGPSPlus::speed.mps()*0.61;
+  Speed = speed * 5; // OGN speed in 0.2 knots/s 
   
   
   if(Speed <0)
@@ -153,12 +137,12 @@ uint32_t OGNGPS::GetOGNSpeed(void)
 
 uint32_t OGNGPS::GetOGNDOP(void)
 {
-   return(TinyGPSPlus::hdop.value());
+   return(HDOP);
 }
 
 uint8_t OGNGPS::GetOGNFixQuality(void)
 {
-  if(TinyGPSPlus::location.isValid())
+  if(fix)
    return 1;
   else
     return 0;
@@ -166,7 +150,7 @@ uint8_t OGNGPS::GetOGNFixQuality(void)
   
 uint8_t OGNGPS::GetOGNFixMode(void)
 {
-  if(TinyGPSPlus::satellites.value()>4)
+  if(satellites>4)
    return 1;
   else
     return 0;
@@ -174,7 +158,7 @@ uint8_t OGNGPS::GetOGNFixMode(void)
     
 uint16_t OGNGPS::GetOGNHeading(void)
 {
-  return TinyGPSPlus::course.deg() * 2.84444;
+  return angle * 1024 / 360;
 }
  
 int16_t OGNGPS::GetOGNTurnRate(void)
