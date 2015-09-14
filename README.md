@@ -1,5 +1,12 @@
 OGN Tracker Client
 
+This fork uses the Adafruit_GPS library instead of TinyGPS++. This is a much
+smaller library. Compiled sketch size is just under 24KB which leaves enough
+headroom to add some additional features (like a barometer, SD-card, etc.)
+-David
+
+Original MD
+
 This repository implements the code for an Open Glider Network Tracker client.
 
 Details of the tracking network and tracking client are provided here
