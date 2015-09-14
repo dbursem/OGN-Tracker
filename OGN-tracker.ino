@@ -1,3 +1,4 @@
+
 /* 
     OGN Tracker Client
     Copyright (C) <2015>  <Mike Roberts>
@@ -15,13 +16,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
- 
+
+#include <Wire.h>
+#include <Adafruit_BMP085.h>
 #include <SPI.h>
 #include <RFM69registers.h>
 #include <SoftwareSerial.h>
 #include <Adafruit_GPS.h>
 #include <EEPROM.h>
 #include <stdint.h>
+
 
 #include "OGNGPS.h"
 #include "OGNRadio.h"
@@ -46,6 +50,8 @@ uint32_t ReportTime = 0;
 #define REPORTDELAY 1000
 SoftwareSerial mySerial(5,4);
 OGNGPS GPS(&mySerial);
+Adafruit_BMP085 bmp;
+boolean use_bmp = true;
 
 void setup() 
 {
@@ -54,6 +60,9 @@ void setup()
   
   ReceivedData = new ReceiveQueue();
   
+  if (!bmp.begin()) {
+    use_bmp=false;
+  }
   Serial.begin(115200);
   ConfigurationReport();
   GPS.begin(9600);
@@ -77,6 +86,8 @@ void loop()
   if (GPS.newNMEAreceived()) {
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
       return;  // we can fail to parse a sentence in which case we should just wait for another
+//    if (use_bmp)
+//      GPS.altitude = bmp.readAltitude();
   }
   OGNPacket *ReportPacket;
   uint32_t TimeNow;

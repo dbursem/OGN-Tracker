@@ -18,8 +18,6 @@
  
 #include "OGNGPS.h"
 
-
-
 OGNGPS::OGNGPS(SoftwareSerial *ser) : Adafruit_GPS(ser)
 {
   TurnRate = 0;
@@ -96,11 +94,9 @@ uint32_t OGNGPS::GetOGNLongitude(void)
 uint32_t OGNGPS::GetOGNAltitude(void)
 {
   uint32_t Altitude;
-  Altitude = altitude;
+  Altitude = (altitude < 0 ? 0 : altitude);
   
-  if(Altitude <0)
-    return 1;
-  else if (Altitude < 0x1000)
+  if (Altitude < 0x1000)
     return Altitude;
   else if (Altitude < 0x3000)
     return (0x1000 + ((Altitude - 0x1000)>>1));
@@ -114,12 +110,10 @@ uint32_t OGNGPS::GetOGNAltitude(void)
 uint32_t OGNGPS::GetOGNSpeed(void)
 {
   uint32_t Speed;
-  Speed = speed * 5;    // OGN speed in 0.2 knots
+  Speed = (speed<0?0:speed) * 5;    // OGN speed in 0.2 knots
   Speed /= 10;          // I have truly no idea where this is comming from...
   
-  if(Speed <0)
-    return 0;
-  else if (Speed < 0x100)
+  if (Speed < 0x100)
     return Speed;
   else if (Speed < 0x300)
     return (0x100 + ((Speed - 0x100)>>1));

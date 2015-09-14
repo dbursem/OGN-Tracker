@@ -28,6 +28,7 @@ class OGNGPS : public Adafruit_GPS
 {
   public:
     OGNGPS(SoftwareSerial *ser);
+    void OGNparse();
     uint8_t ProcessInput(void);
     uint32_t GetOGNLatitude();
     uint32_t GetOGNLongitude();
