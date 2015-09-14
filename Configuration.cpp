@@ -47,8 +47,8 @@ void Configuration::LoadConfiguration(uint32_t TempAddress )
     cs.Private = 0;
     cs.SerialBaud = 115200;
     cs.GPSBaud = 9600;
-    cs.DataInPin = 4;
-    cs.DataOutPin = 5;
+    cs.DataInPin = 5; //GPS Rx
+    cs.DataOutPin = 4; // GP Tx
     cs.TxPower = 14;
     cs.NMEAOut = 1;
     cs.NMEADelay = 120;

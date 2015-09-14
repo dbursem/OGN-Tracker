@@ -26,13 +26,13 @@ OGNGPS::OGNGPS(SoftwareSerial *ser) : Adafruit_GPS(ser)
   ClimbRate = 0;
   LastAltitude = 0;
   LastHeading = 0;
+  startInterrupt();
 }
 void OGNGPS::startInterrupt() {
     // Timer0 is already used for millis() - we'll just interrupt somewhere
     // in the middle and call the "Compare A" function above
     OCR0A = 0xAF;
     TIMSK0 |= _BV(OCIE0A);
-    
 }
 
 void OGNGPS::CalculateClimbRate(int32_t TimeNow)
@@ -69,7 +69,7 @@ void OGNGPS::CalculateTurnRate(int32_t TimeNow)
   DeltaT = TimeNow - LastTime;
   LastTime = TimeNow; 
   
-  NewHeading = (int32_t) angle * 1024 / 360;
+  NewHeading = (int32_t) angle * 1024 / 360;  // angle * 1024 / 360 following OGN tracking protocol 
   DeltaH = 10*(NewHeading - LastHeading);
   LastHeading = NewHeading;
   TurnRate = DeltaH/DeltaT;
@@ -80,20 +80,16 @@ uint32_t OGNGPS::GetOGNLatitude(void)
 {
   uint32_t Latitude;
   
-  Latitude = latitudeDegrees;
-  Latitude *= 100000;
-  Latitude *= 6;
-  Latitude /= 8;
+  Latitude = (latitudeDegrees * 600000);
+  Latitude>>=3; // Lat * 100000 * 6 / 8 following OGN tracking protocol 
   return Latitude;
 }
 
 uint32_t OGNGPS::GetOGNLongitude(void)
 {
   uint32_t Longitude;
-  Longitude = longitudeDegrees;
-  Longitude *= 100000;
-  Longitude *= 6;
-  Longitude /= 16;
+  Longitude = (longitudeDegrees * 600000);
+  Longitude>>=4; // Lon * 100000 * 6 / 16 following OGN tracking protocol 
   return Longitude;
 }
 
@@ -107,30 +103,30 @@ uint32_t OGNGPS::GetOGNAltitude(void)
   else if (Altitude < 0x1000)
     return Altitude;
   else if (Altitude < 0x3000)
-    return (0x1000 + ((Altitude - 0x1000)/2));
+    return (0x1000 + ((Altitude - 0x1000)>>1));
   else if (Altitude < 0x7000)
-    return (0x2000 + ((Altitude - 0x3000)/4));
+    return (0x2000 + ((Altitude - 0x3000)>>2));
   else if (Altitude < 0xF000)
-    return (0x3000 + ((Altitude - 0x7000)/8));
+    return (0x3000 + ((Altitude - 0x7000)>>3));
   else return 0x3FFF;  
 }
 
 uint32_t OGNGPS::GetOGNSpeed(void)
 {
   uint32_t Speed;
-  Speed = speed * 5; // OGN speed in 0.2 knots/s 
-  
+  Speed = speed * 5;    // OGN speed in 0.2 knots
+  Speed /= 10;          // I have truly no idea where this is comming from...
   
   if(Speed <0)
     return 0;
   else if (Speed < 0x100)
     return Speed;
   else if (Speed < 0x300)
-    return (0x100 + ((Speed - 0x100)/2));
+    return (0x100 + ((Speed - 0x100)>>1));
   else if (Speed < 0x700)
-    return (0x300 + ((Speed - 0x300)/4));
+    return (0x300 + ((Speed - 0x300)>>2));
   else if (Speed < 0xF00)
-    return (0x700 + ((Speed - 0x700)/8));
+    return (0x700 + ((Speed - 0x700)>>3));
   else
     return 0x3FF;
 }
@@ -158,7 +154,7 @@ uint8_t OGNGPS::GetOGNFixMode(void)
     
 uint16_t OGNGPS::GetOGNHeading(void)
 {
-  return angle * 1024 / 360;
+  return angle *1024 / 360;
 }
  
 int16_t OGNGPS::GetOGNTurnRate(void)
@@ -180,13 +176,59 @@ int16_t OGNGPS::GetOGNClimbRate(void)
   if(Rate < 0x040)
     Rate = Rate;
   else if (Rate < 0x0C0)
-    Rate = 0x040 + (Rate - 0x40)/2;
+    Rate = 0x040 + (Rate - 0x40)>>1;
   else if (Rate < 0x1C0)
-    Rate = 0x0C0 + (Rate - 0x0C0)/4;
+    Rate = 0x0C0 + (Rate - 0x0C0)>>2;
   else if (Rate < 0x3C0)
-     Rate = 0x1C0 + (Rate - 0x1C0)/8;
+     Rate = 0x1C0 + (Rate - 0x1C0)>>3;
   else
      Rate = 0x0FF;
      
   return (uint16_t)(UpDown | Rate);
+}
+/*static*/
+double OGNGPS::distanceBetween(double lat1, double long1, double lat2, double long2)
+{
+  // returns distance in meters between two positions, both specified
+  // as signed decimal-degrees latitude and longitude. Uses great-circle
+  // distance computation for hypothetical sphere of radius 6372795 meters.
+  // Because Earth is no exact sphere, rounding errors may be up to 0.5%.
+  // Courtesy of Maarten Lamers
+  double delta = radians(long1-long2);
+  double sdlong = sin(delta);
+  double cdlong = cos(delta);
+  lat1 = radians(lat1);
+  lat2 = radians(lat2);
+  double slat1 = sin(lat1);
+  double clat1 = cos(lat1);
+  double slat2 = sin(lat2);
+  double clat2 = cos(lat2);
+  delta = (clat1 * slat2) - (slat1 * clat2 * cdlong);
+  delta = sq(delta);
+  delta += sq(clat2 * sdlong);
+  delta = sqrt(delta);
+  double denom = (slat1 * slat2) + (clat1 * clat2 * cdlong);
+  delta = atan2(delta, denom);
+  return delta * 6372795;
+}
+
+
+double OGNGPS::courseTo(double lat1, double long1, double lat2, double long2)
+{
+  // returns course in degrees (North=0, West=270) from position 1 to position 2,
+  // both specified as signed decimal-degrees latitude and longitude.
+  // Because Earth is no exact sphere, calculated course may be off by a tiny fraction.
+  // Courtesy of Maarten Lamers
+  double dlon = radians(long2-long1);
+  lat1 = radians(lat1);
+  lat2 = radians(lat2);
+  double a1 = sin(dlon) * cos(lat2);
+  double a2 = sin(lat1) * cos(lat2) * cos(dlon);
+  a2 = cos(lat1) * sin(lat2) - a2;
+  a2 = atan2(a1, a2);
+  if (a2 < 0.0)
+  {
+    a2 += TWO_PI;
+  }
+  return degrees(a2);
 }

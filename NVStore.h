@@ -1,4 +1,4 @@
-/* 
+/*
     OGN Tracker Client
     Copyright (C) <2015>  <Mike Roberts>
 
@@ -27,11 +27,11 @@ class NVStore
     NVStore();
     uint16_t Store_Write(void *Object, uint16_t Size);
     uint16_t Store_Read(void *Object, uint16_t Size);
-    
+
   protected:
-				
+
   private:
 };
 
 
-#endif 
+#endif

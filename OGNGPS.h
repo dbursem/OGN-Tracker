@@ -29,7 +29,6 @@ class OGNGPS : public Adafruit_GPS
   public:
     OGNGPS(SoftwareSerial *ser);
     uint8_t ProcessInput(void);
-    
     uint32_t GetOGNLatitude();
     uint32_t GetOGNLongitude();
     uint32_t GetOGNAltitude();
@@ -42,11 +41,13 @@ class OGNGPS : public Adafruit_GPS
     int16_t GetOGNTurnRate();
     void CalculateClimbRate(int32_t DeltaT);
     void CalculateTurnRate(int32_t DeltaT);
-      
+    static double distanceBetween(double lat1, double long1, double lat2, double long2);
+    static double courseTo(double lat1, double long1, double lat2, double long2);
+    void startInterrupt();
   protected:
 				
   private:
-    void startInterrupt();
+    
     int16_t LastHeading;
     int32_t LastAltitude;
     uint32_t TurnRate;
