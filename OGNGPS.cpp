@@ -131,7 +131,7 @@ uint32_t OGNGPS::GetOGNAltitude(void)
 uint32_t OGNGPS::GetOGNSpeed(void)
 {
   uint32_t Speed;
-  Speed = (TinyGPSPlus::speed().knots() < 0 ? 0 : TinyGPSPlus::speed().knots()) * 5 / 10;
+  Speed = ( TinyGPSPlus::speed.knots() < 0 ? 0 : TinyGPSPlus::speed.knots()) * 5 / 10;
     //uint can't be <0, also couldn't find any clue for the conversion to m/s * 0.61  
   if (Speed < 0x100)
     return Speed;
