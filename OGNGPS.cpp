@@ -116,11 +116,8 @@ uint32_t OGNGPS::GetOGNLongitude(void)
 uint32_t OGNGPS::GetOGNAltitude(void)
 {
   uint32_t Altitude;
-  Altitude = TinyGPSPlus::altitude.meters();
-  
-  if(Altitude <0)
-    return 1;
-  else if (Altitude < 0x1000)
+  Altitude = (TinyGPSPlus::altitude.meters() < 0 ? 0 : TinyGPSPlus::altitude.meters()); //uint can't be <0
+  if (Altitude < 0x1000)
     return Altitude;
   else if (Altitude < 0x3000)
     return (0x1000 + ((Altitude - 0x1000)/2));
@@ -134,12 +131,9 @@ uint32_t OGNGPS::GetOGNAltitude(void)
 uint32_t OGNGPS::GetOGNSpeed(void)
 {
   uint32_t Speed;
-  Speed = TinyGPSPlus::speed.mps()*0.61;
-  
-  
-  if(Speed <0)
-    return 0;
-  else if (Speed < 0x100)
+  Speed = (TinyGPSPlus::speed().knots() < 0 ? 0 : TinyGPSPlus::speed().knots()) * 5 / 10;
+    //uint can't be <0, also couldn't find any clue for the conversion to m/s * 0.61  
+  if (Speed < 0x100)
     return Speed;
   else if (Speed < 0x300)
     return (0x100 + ((Speed - 0x100)/2));
