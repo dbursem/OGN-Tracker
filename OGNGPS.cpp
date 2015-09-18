@@ -22,7 +22,7 @@
 OGNGPS::OGNGPS(uint8_t DataInPin, uint8_t DataOutPin):TinyGPSPlus()
 {
   OGNGPSStream = new SoftwareSerial(DataInPin, DataOutPin);
-  OGNGPSStream->begin(9800);
+  OGNGPSStream->begin(9600);
   TurnRate = 0;
   ClimbRate = 0;
   LastAltitude = 0;
