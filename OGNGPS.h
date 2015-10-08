@@ -1,4 +1,4 @@
-/* 
+/*    
     OGN Tracker Client
     Copyright (C) <2015>  <Mike Roberts>
 
@@ -44,15 +44,19 @@ class OGNGPS : public Adafruit_GPS
     void CalculateTurnRate(int32_t DeltaT);
     static double distanceBetween(double lat1, double long1, double lat2, double long2);
     static double courseTo(double lat1, double long1, double lat2, double long2);
+    float BaroAltitude;
+    boolean use_bmp = false;
     void startInterrupt();
   protected:
 				
   private:
-    
+    float CorrectedBMPAltitude();
     int16_t LastHeading;
     int32_t LastAltitude;
     uint32_t TurnRate;
     uint32_t ClimbRate;
+    int CorrectionFactor;
+    int num_iterations;
     
 };
 

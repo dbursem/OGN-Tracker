@@ -51,8 +51,6 @@ uint32_t ReportTime = 0;
 SoftwareSerial mySerial(5,4);
 OGNGPS GPS(&mySerial);
 Adafruit_BMP085 bmp;
-boolean use_bmp = true;
-float alt_gps;
 void setup() 
 {
   TrackerConfiguration = new Configuration();
@@ -60,14 +58,18 @@ void setup()
   
   ReceivedData = new ReceiveQueue();
   
-  if (!bmp.begin()) {
-    use_bmp=false;
-  }
   Serial.begin(115200);
-  ConfigurationReport();
+  
   GPS.begin(9600);
+  if (!bmp.begin()) {
+    GPS.use_bmp=false;
+  }
+  else {
+    GPS.use_bmp=true;
+  }
   Radio = new OGNRadio(); 
   Radio->Initialise(TrackerConfiguration->GetTxPower());
+  ConfigurationReport();
 }
 
 // Interrupt is called once a millisecond, looks for any new GPS data, and stores it
@@ -86,9 +88,8 @@ void loop()
   if (GPS.newNMEAreceived()) {
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
       return;  // we can fail to parse a sentence in which case we should just wait for another
-    alt_gps = GPS.altitude;
-    if (use_bmp)
-      GPS.altitude = bmp.readAltitude();
+    if (GPS.use_bmp)
+      GPS.BaroAltitude = bmp.readAltitude();
   }
   OGNPacket *ReportPacket;
   uint32_t TimeNow;
@@ -174,7 +175,7 @@ void FormRFPacket(OGNPacket *Packet)
    
   Packet->MakeLatitude(GPS.GetOGNFixQuality(), GPS.seconds, GPS.GetOGNLatitude());
     
-  Packet->MakeLongitude(GPS.GetOGNFixMode(), use_bmp, GPS.GetOGNDOP(), GPS.GetOGNLongitude());
+  Packet->MakeLongitude(GPS.GetOGNFixMode(), GPS.use_bmp, GPS.GetOGNDOP(), GPS.GetOGNLongitude());
   
   Packet->MakeAltitude(GPS.GetOGNTurnRate(), GPS.GetOGNSpeed(), GPS.GetOGNAltitude());
   

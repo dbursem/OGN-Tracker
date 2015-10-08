@@ -21,7 +21,7 @@
 /* OGN Packet Map
 [00:03] [SSSS SSSS] [SSSS SSSS] [SSSS SSSS] [SSSS SSSS]  Sync Field 4 Bytes 0x0AF3656C
 [04:07] [ECRR PMTT] [AAAA AAAA] [AAAA AAAA] [AAAA AAAA]  [E]mergency, [C]rypt, [R]elay Count, Even [P]arity, Address [T]ype [A]ddress 32 Bits
-[08:0B] [QQTT TTTT] [LLLL LLLL] [LLLL LLLL] [LLLL LLLL]  [Q]uality, [T}ime, [L]atitude 
+[08:0B] [QQTT TTTT] [LLLL LLLL] [LLLL LLLL] [LLLL LLLL]  [Q]uality, [T]ime, [L]atitude 
 [0C:0F] [MBDD DDDD] [LLLL LLLL] [LLLL LLLL] [LLLL LLLL]  [F]ix, [B]aro, [D]OP, [L]ongitude
 [10:13] [RRRR RRRR] [SSSS SSSS] [SSAA AAAA] [AAAA AAAA]  Turn [R]ate, [S]peed, [A]ltitude
 [14:17] [TTTT TTTT] [AAAA PCCC] [CCCC CCDD] [DDDD DDDD]  [T]emperature, [A]ircraft Type, [P]rivate [C]limb, Hea[D]ing

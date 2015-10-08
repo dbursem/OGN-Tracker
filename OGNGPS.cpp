@@ -90,11 +90,25 @@ uint32_t OGNGPS::GetOGNLongitude(void)
   Longitude>>=4; // Lon * 100000 * 6 / 16 following OGN tracking protocol 
   return Longitude;
 }
+float OGNGPS::CorrectedBMPAltitude(void)
+{
+  if (!use_bmp) {
+    return (altitude < 0 ? 0 : altitude);
+  }
+  
+  int current_correction = altitude - BaroAltitude;
 
+  CorrectionFactor = (CorrectionFactor * num_iterations + current_correction) / (num_iterations + 1) ;
+  
+  if (num_iterations < 600){ //max 10 minutes 
+    num_iterations ++;
+  }
+  Serial.println(CorrectionFactor);
+  return (BaroAltitude + CorrectionFactor < 0 ? 0 : BaroAltitude + CorrectionFactor);
+}
 uint32_t OGNGPS::GetOGNAltitude(void)
 {
-  uint32_t Altitude;
-  Altitude = (altitude < 0 ? 0 : altitude);
+  uint32_t Altitude = CorrectedBMPAltitude();
   
   if (Altitude < 0x1000)
     return Altitude;
