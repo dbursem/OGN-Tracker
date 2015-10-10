@@ -17,6 +17,9 @@
 */
  
 #include "OGNGPS.h"
+#include <RunningMedian.h>
+RunningMedian tenseconds = RunningMedian(20);
+RunningMedian tenminutes = RunningMedian(120);
 
 OGNGPS::OGNGPS(SoftwareSerial *ser) : Adafruit_GPS(ser)
 {
@@ -47,7 +50,7 @@ void OGNGPS::CalculateClimbRate(int32_t TimeNow)
   DeltaT = TimeNow - LastTime;
   LastTime = TimeNow; 
   
-  NewAltitude = (int32_t)altitude;
+  NewAltitude = (int32_t) CorrectedBMPAltitude();
   DeltaH = 10*(NewAltitude - LastAltitude);
   LastAltitude = NewAltitude;
   ClimbRate = DeltaH/DeltaT;
@@ -96,13 +99,23 @@ float OGNGPS::CorrectedBMPAltitude(void)
     return (altitude < 0 ? 0 : altitude);
   }
   
-  int current_correction = altitude - BaroAltitude;
-
-  CorrectionFactor = (CorrectionFactor * num_iterations + current_correction) / (num_iterations + 1) ;
-  
-  if (num_iterations < 600){ //max 10 minutes 
-    num_iterations ++;
+  int current_correction = 10 * (altitude - BaroAltitude) ;
+  tenseconds.add(current_correction);
+  samples++;
+  if (samples == 20){
+    tenminutes.add(tenseconds.getAverage());
+    samples = 0;
   }
+  float CorrectionFactor = tenminutes.getAverage() /10;
+  
+  Serial.print(use_bmp);
+  Serial.print(" GPSAlt: ");
+  Serial.print(altitude,2);
+  Serial.print(" BaroAlt: ");
+  Serial.print(BaroAltitude,2);
+  Serial.print(" Corrected alt:");
+  Serial.print(BaroAltitude + CorrectionFactor);
+  Serial.print(" Correction factor:");
   Serial.println(CorrectionFactor);
   return (BaroAltitude + CorrectionFactor < 0 ? 0 : BaroAltitude + CorrectionFactor);
 }

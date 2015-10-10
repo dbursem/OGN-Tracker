@@ -1,4 +1,6 @@
 
+
+
 /* 
     OGN Tracker Client
     Copyright (C) <2015>  <Mike Roberts>
@@ -18,14 +20,14 @@
 */
 
 #include <Wire.h>
-#include <Adafruit_BMP085.h>
+#include <Adafruit_BMP085.h>  
 #include <SPI.h>
 #include <RFM69registers.h>
 #include <SoftwareSerial.h>
 #include <Adafruit_GPS.h>
 #include <EEPROM.h>
 #include <stdint.h>
-
+#include <RunningMedian.h>  //https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian
 
 #include "OGNGPS.h"
 #include "OGNRadio.h"

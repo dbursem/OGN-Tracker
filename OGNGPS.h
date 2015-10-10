@@ -55,8 +55,7 @@ class OGNGPS : public Adafruit_GPS
     int32_t LastAltitude;
     uint32_t TurnRate;
     uint32_t ClimbRate;
-    int CorrectionFactor;
-    int num_iterations;
+    byte samples;
     
 };
 
